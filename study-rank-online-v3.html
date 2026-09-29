@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4f6f8">
+<title>Study Rank</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}:root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#68727d;--border:#e1e5e8;--line:#edf0f2;--soft:#eef1f4;--green-bg:#dff5e7;--green:#176b36;--red-bg:#ffe5e5;--red:#a12525;--gold-bg:#fff5d6;--gold:#8b6500;--shadow:0 5px 22px rgba(0,0,0,.055)}
+body.dark{--bg:#101418;--card:#171c21;--text:#f1f4f6;--muted:#9aa5ae;--border:#2a3239;--line:#252c32;--soft:#242b31;--green-bg:#173b27;--green:#78d89a;--red-bg:#3b2020;--red:#ff8f8f;--gold-bg:#3d3215;--gold:#ffd76b;--shadow:0 5px 24px rgba(0,0,0,.22)}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);transition:.25s}
+button,input,select{font:inherit}button{border:0;cursor:pointer;color:var(--text)}button:disabled{opacity:.45;cursor:not-allowed}
+.app{width:min(780px,100%);margin:auto;padding:22px 16px 56px}
+header{text-align:center;margin-bottom:20px}header h1{margin:0;font-size:clamp(28px,7vw,36px);letter-spacing:-.7px}header p{margin:7px 0 0;color:var(--muted)}
+.top-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:14px}.connection,.identity-status{margin-top:8px;font-size:12px;color:var(--muted)}.online{color:var(--green)}.offline{color:var(--red)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:15px;box-shadow:var(--shadow);transition:.25s}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 15px}.card-title h2{margin:0;font-size:20px}
+label{display:block;font-size:13px;font-weight:800;margin-bottom:8px}
+select,input{width:100%;border:1px solid #ccd2d7;border-radius:13px;padding:13px 14px;font-size:16px;background:var(--card);color:var(--text);outline:0;transition:.18s}
+body.dark select,body.dark input{border-color:var(--border)}select:focus,input:focus{border-color:#557dcc;box-shadow:0 0 0 3px rgba(85,125,204,.15)}
+.player{text-align:center;margin:18px 0 17px}.player h2{margin:0;font-size:24px}.score{font-size:clamp(38px,10vw,48px);font-weight:900;margin-top:5px;letter-spacing:-1.5px}.score.pop{animation:scorePop .5s ease}
+@keyframes scorePop{35%{transform:scale(1.13)}100%{transform:scale(1)}}
+.muted{color:var(--muted);font-size:14px}.buttons{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.action-btn,.secondary,.danger-btn,.remove-btn{border-radius:14px;padding:14px 12px;font-size:15px;font-weight:850;transition:transform .08s,filter .18s}.action-btn:active,.secondary:active,.danger-btn:active,.remove-btn:active{transform:scale(.97)}
+.correct{background:var(--green-bg);color:var(--green)}.wrong{background:var(--red-bg);color:var(--red)}.undo,.secondary{background:var(--soft);color:var(--text)}.danger-btn,.remove-btn{background:var(--red-bg);color:var(--red)}
+.champion{text-align:center;padding:7px 0 4px}.champion.trophy-animate{animation:championPulse .65s ease}.champion-trophy{font-size:58px;line-height:1;margin-bottom:7px}.champion-name{font-size:28px;font-weight:950}.champion-points{margin-top:4px;color:var(--muted);font-weight:650}
+@keyframes championPulse{40%{transform:scale(1.035)}100%{transform:scale(1)}}
+.ranking{list-style:none;padding:0;margin:0}.ranking li{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:11px;padding:12px 7px;border-bottom:1px solid var(--line);border-radius:13px;transition:.25s}.ranking li:last-child{border:0}.ranking li.rank-first{background:var(--gold-bg);box-shadow:inset 0 0 0 1px rgba(139,101,0,.12)}.ranking li.position-changed{animation:rankMove .7s ease}
+@keyframes rankMove{28%{transform:translateY(-3px) scale(1.025)}55%{transform:translateY(1px) scale(1.012)}100%{transform:none}}
+.position{text-align:center;font-size:21px;font-weight:850}.name{font-weight:850}.details{font-size:12px;color:var(--muted);margin-top:4px}.points{font-weight:900;text-align:right;white-space:nowrap}.rank-change{display:inline-block;margin-left:6px;font-size:11px;font-weight:900}.rank-up{color:var(--green)}.rank-down{color:var(--red)}
+.floating-points{position:fixed;z-index:300;pointer-events:none;font-weight:950;font-size:24px;animation:floatPoints .8s ease forwards}.floating-positive{color:var(--green)}.floating-negative{color:var(--red)}
+@keyframes floatPoints{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}20%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-65px) scale(1.05)}}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:var(--soft);border-radius:15px;padding:14px}.stat-label{color:var(--muted);font-size:11px;font-weight:700;margin-bottom:4px}.stat-value{font-size:23px;font-weight:950}
+.accuracy-wrap{margin-top:14px}.accuracy-head{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px;color:var(--muted);font-weight:750}.progress{height:9px;background:var(--soft);border-radius:99px;overflow:hidden}.progress-bar{height:100%;width:0;border-radius:99px;background:var(--green);transition:width .5s}
+.history{max-height:440px;overflow:auto}.history-item{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:11px 5px;border-bottom:1px solid var(--line)}.history-item:last-child{border:0}.history-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:var(--soft)}.history-main{min-width:0}.history-title{font-weight:850}.history-meta{color:var(--muted);font-size:11px;margin-top:3px}.history-points{font-weight:900;white-space:nowrap}.positive{color:var(--green)}.negative{color:var(--red)}
+.add-player{display:flex;gap:8px}.add-player input{flex:1}.player-list{margin-top:13px;border-top:1px solid var(--line)}.player-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.player-row:last-child{border:0}.player-row-name{font-weight:800;overflow:hidden;text-overflow:ellipsis}.remove-btn{padding:9px 11px;font-size:12px}.admin{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+.empty,.loading{text-align:center;color:var(--muted);padding:20px 0}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.56);display:flex;align-items:center;justify-content:center;padding:18px;z-index:100;backdrop-filter:blur(3px)}.modal-backdrop.hidden{display:none}.modal{width:min(440px,100%);background:var(--card);color:var(--text);border-radius:21px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.3);animation:modalIn .2s ease}.modal h2{margin:0 0 8px}.modal-actions{display:flex;gap:8px;margin-top:13px}.modal-actions button{flex:1}@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:#17202a;color:#fff;padding:11px 16px;border-radius:13px;font-weight:750;opacity:0;pointer-events:none;transition:.2s;z-index:200;max-width:calc(100% - 32px);text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:650px){.buttons{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.app{padding-left:11px;padding-right:11px}.card{padding:16px;border-radius:17px}.top-actions button{font-size:12px;padding:10px 11px}.ranking li{grid-template-columns:34px 1fr auto;gap:7px}.history-item{grid-template-columns:36px 1fr auto}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>🏆 Ranking de Estudos</h1><p>Faça questões e suba no ranking</p>
+<div class="top-actions">
+<button class="secondary" id="identityBtn">👤 Definir quem sou</button>
+<button class="secondary" id="themeBtn">🌙 Modo escuro</button>
+<button class="secondary" id="refreshBtn">🔄 Atualizar</button>
+</div>
+<div id="connectionStatus" class="connection">Conectando...</div>
+<div id="identityStatus" class="identity-status">Você: não definido</div>
+</header>
+
+<section class="card">
+<label for="playerSelect">Selecione o jogador</label>
+<select id="playerSelect"><option>Carregando...</option></select>
+<div class="player"><h2 id="selectedName">—</h2><div class="score" id="selectedScore">0 pts</div><div class="muted" id="selectedStats">0 questões · 0 acertos · 0 erros</div></div>
+<div class="buttons">
+<button class="action-btn correct" id="correctBtn">✅ Acertei<br>+10 pontos</button>
+<button class="action-btn wrong" id="wrongBtn">❌ Errei<br>+5 pontos</button>
+<button class="action-btn undo" id="undoBtn" disabled>↩️ Desfazer<br>última ação</button>
+</div>
+</section>
+
+<section class="card"><div class="card-title"><h2>👑 Líder atual</h2></div><div id="champion" class="champion"><div class="loading">Carregando...</div></div></section>
+
+<section class="card"><div class="card-title"><h2>🏆 Ranking</h2></div><ol class="ranking" id="ranking"><li class="loading">Carregando ranking...</li></ol></section>
+
+<section class="card">
+<div class="card-title"><h2>📊 Estatísticas</h2></div>
+<div class="stats-grid">
+<div class="stat"><div class="stat-label">Jogadores</div><div class="stat-value" id="totalPlayers">0</div></div>
+<div class="stat"><div class="stat-label">Questões</div><div class="stat-value" id="totalQuestions">0</div></div>
+<div class="stat"><div class="stat-label">Acertos</div><div class="stat-value" id="totalCorrect">0</div></div>
+<div class="stat"><div class="stat-label">Erros</div><div class="stat-value" id="totalWrong">0</div></div>
+<div class="stat"><div class="stat-label">Pontos</div><div class="stat-value" id="totalPoints">0</div></div>
+<div class="stat"><div class="stat-label">Precisão</div><div class="stat-value" id="totalAccuracy">0%</div></div>
+</div>
+<div class="accuracy-wrap"><div class="accuracy-head"><span>Precisão geral</span><strong id="accuracyLabel">0%</strong></div><div class="progress"><div class="progress-bar" id="accuracyBar"></div></div></div>
+</section>
+
+<section class="card"><div class="card-title"><h2>📜 Histórico</h2><span class="muted">últimas 100</span></div><div class="history" id="history"><div class="loading">Carregando histórico...</div></div></section>
+
+<section class="card">
+<div class="card-title"><h2>👥 Jogadores</h2></div>
+<div class="add-player"><input id="newPlayer" type="text" maxlength="30" placeholder="Nome do jogador"><button class="secondary" id="addBtn">Adicionar</button></div>
+<div class="player-list" id="playerList"><div class="loading">Carregando jogadores...</div></div>
+<div class="admin"><span class="muted">Ranking compartilhado online.</span><button class="danger-btn" id="resetBtn">Zerar placar</button></div>
+</section>
+</div>
+
+<div class="modal-backdrop hidden" id="identityModal"><div class="modal">
+<h2>👤 Quem é você?</h2><p class="muted">Seu nome aparece no histórico para mostrar quem registrou cada ação.</p>
+<input id="identityInput" type="text" maxlength="30" placeholder="Seu nome">
+<div class="modal-actions"><button class="secondary" id="identityCancelBtn">Cancelar</button><button class="correct action-btn" id="identitySaveBtn">Salvar</button></div>
+</div></div>
+
+<div class="modal-backdrop hidden" id="confirmModal"><div class="modal">
+<h2 id="confirmTitle">Confirmar</h2><p class="muted" id="confirmText"></p>
+<div class="modal-actions"><button class="secondary" id="confirmCancelBtn">Cancelar</button><button class="danger-btn" id="confirmOkBtn">Confirmar</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL="https://vuzebrfvrmwfhrrnyctn.supabase.co";
+const SUPABASE_KEY="sb_publishable_BoyywHdHF5Bkxo-SpRxK0w_uNFclBV3";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let players=[],history=[],selectedId=null,previousRanks=new Map(),previousLeaderId=null,audioContext=null,confirmCallback=null;
+
+const $=id=>document.getElementById(id);
+const select=$("playerSelect"),selectedName=$("selectedName"),selectedScore=$("selectedScore"),selectedStats=$("selectedStats");
+const ranking=$("ranking"),historyEl=$("history"),champion=$("champion"),playerList=$("playerList");
+const correctBtn=$("correctBtn"),wrongBtn=$("wrongBtn"),undoBtn=$("undoBtn"),addBtn=$("addBtn"),newPlayer=$("newPlayer"),resetBtn=$("resetBtn");
+const refreshBtn=$("refreshBtn"),themeBtn=$("themeBtn"),identityBtn=$("identityBtn"),identityStatus=$("identityStatus");
+const identityModal=$("identityModal"),identityInput=$("identityInput"),identitySaveBtn=$("identitySaveBtn"),identityCancelBtn=$("identityCancelBtn");
+const confirmModal=$("confirmModal"),confirmTitle=$("confirmTitle"),confirmText=$("confirmText"),confirmCancelBtn=$("confirmCancelBtn"),confirmOkBtn=$("confirmOkBtn");
+const toast=$("toast"),connectionStatus=$("connectionStatus"),totalPlayers=$("totalPlayers"),totalQuestions=$("totalQuestions"),totalCorrect=$("totalCorrect"),totalWrong=$("totalWrong"),totalAccuracy=$("totalAccuracy"),totalPoints=$("totalPoints"),accuracyLabel=$("accuracyLabel"),accuracyBar=$("accuracyBar");
+
+function getIdentity(){return localStorage.getItem("studyRank_identity")||""}
+function setIdentity(n){localStorage.setItem("studyRank_identity",n);updateIdentityUI()}
+function updateIdentityUI(){const n=getIdentity();identityStatus.textContent=n?`Você: ${n}`:"Você: não definido"}
+function openIdentityModal(){identityInput.value=getIdentity();identityModal.classList.remove("hidden");setTimeout(()=>identityInput.focus(),50)}
+function closeIdentityModal(){identityModal.classList.add("hidden")}
+
+function loadTheme(){const d=localStorage.getItem("studyRank_theme")==="dark";document.body.classList.toggle("dark",d);themeBtn.textContent=d?"☀️ Modo claro":"🌙 Modo escuro"}
+function toggleTheme(){const d=!document.body.classList.contains("dark");document.body.classList.toggle("dark",d);localStorage.setItem("studyRank_theme",d?"dark":"light");themeBtn.textContent=d?"☀️ Modo claro":"🌙 Modo escuro"}
+
+let toastTimer;
+function showToast(m){toast.textContent=m;toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("show"),2300)}
+function openConfirm(t,txt,cb){confirmTitle.textContent=t;confirmText.textContent=txt;confirmCallback=cb;confirmModal.classList.remove("hidden")}
+function closeConfirm(){confirmModal.classList.add("hidden");confirmCallback=null}
+
+function getAudioContext(){if(!audioContext)audioContext=new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==="suspended")audioContext.resume();return audioContext}
+function playTone(f,d,type="sine"){try{const c=getAudioContext(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(.18,n+.01);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d+.02)}catch(e){console.log("Áudio indisponível",e)}}
+function soundCorrect(){playTone(660,.1);setTimeout(()=>playTone(880,.14),80)}
+function soundWrong(){playTone(260,.18,"sawtooth")}
+function soundUndo(){playTone(500,.1,"triangle");setTimeout(()=>playTone(350,.15,"triangle"),90)}
+function vibrate(p){if("vibrate"in navigator)navigator.vibrate(p)}
+function setConnectionStatus(t,on){connectionStatus.textContent=t;connectionStatus.className=on?"connection online":"connection offline"}
+
+async function loadPlayers(){
+ const {data,error}=await supabaseClient.from("players").select("*").order("points",{ascending:false});
+ if(error){console.error(error);setConnectionStatus("🔴 Erro ao conectar",false);return}
+ players=data||[];setConnectionStatus("🟢 Ranking online em tempo real",true);render();
+}
+async function loadHistory(){
+ const {data,error}=await supabaseClient.from("study_rank_history").select("*").order("created_at",{ascending:false}).limit(100);
+ if(error){console.error(error);historyEl.innerHTML='<div class="empty">Histórico indisponível.</div>';return}
+ history=data||[];renderHistory();
+}
+
+function render(){
+ if(selectedId===null||!players.some(p=>p.id===selectedId))selectedId=players.length?players[0].id:null;
+ renderSelect();renderSelectedPlayer();renderRanking();renderStats();renderChampion();renderPlayerList();
+}
+function renderSelect(){select.innerHTML="";players.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;select.appendChild(o)});if(selectedId!==null)select.value=selectedId}
+function renderSelectedPlayer(){
+ const p=players.find(x=>x.id===selectedId);
+ if(!p){selectedName.textContent="—";selectedScore.textContent="0 pts";selectedStats.textContent="0 questões · 0 acertos · 0 erros";correctBtn.disabled=wrongBtn.disabled=undoBtn.disabled=true;return}
+ selectedName.textContent=p.name;selectedScore.textContent=`${p.points} pts`;selectedStats.textContent=`${p.questions} questões · ${p.correct} acertos · ${p.wrong} erros`;
+ correctBtn.disabled=wrongBtn.disabled=false;undoBtn.disabled=p.last_action===null;
+}
+function renderRanking(){
+ ranking.innerHTML="";
+ if(!players.length){ranking.innerHTML='<li class="empty">Nenhum jogador cadastrado.</li>';previousRanks=new Map();return}
+ const sorted=[...players].sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name,"pt-BR"));
+ sorted.forEach((p,i)=>{
+  const li=document.createElement("li"),old=previousRanks.get(p.id),nr=i+1;
+  if(i===0)li.classList.add("rank-first");
+  if(old&&old!==nr){li.classList.add("position-changed");const d=old-nr;const s=document.createElement("span");s.className=`rank-change ${d>0?"rank-up":"rank-down"}`;s.textContent=d>0?`↑ ${d}`:`↓ ${Math.abs(d)}`;var change=s.outerHTML}else var change="";
+  const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}º`,acc=p.questions?Math.round(p.correct/p.questions*100):0;
+  li.innerHTML=`<div class="position">${medal}</div><div><div class="name">${escapeHtml(p.name)} ${change}</div><div class="details">${p.questions} questões · ${acc}% de acerto</div></div><div class="points">${p.points} pts</div>`;
+  ranking.appendChild(li);
+ });
+ previousRanks=new Map(sorted.map((p,i)=>[p.id,i+1]));
+}
+function renderChampion(){
+ if(!players.length){champion.innerHTML='<div class="empty">Nenhum jogador cadastrado.</div>';return}
+ const leader=[...players].sort((a,b)=>b.points-a.points)[0];
+ champion.innerHTML=`<div class="champion-trophy">🏆</div><div class="champion-name">${escapeHtml(leader.name)}</div><div class="champion-points">${leader.points} pontos</div>`;
+ if(previousLeaderId!==null&&previousLeaderId!==leader.id){champion.classList.remove("trophy-animate");void champion.offsetWidth;champion.classList.add("trophy-animate")}
+ previousLeaderId=leader.id;
+}
+function renderStats(){
+ const q=players.reduce((s,p)=>s+p.questions,0),c=players.reduce((s,p)=>s+p.correct,0),w=players.reduce((s,p)=>s+p.wrong,0),pts=players.reduce((s,p)=>s+p.points,0),a=q?Math.round(c/q*100):0;
+ totalPlayers.textContent=players.length;totalQuestions.textContent=q;totalCorrect.textContent=c;totalWrong.textContent=w;totalPoints.textContent=pts;totalAccuracy.textContent=`${a}%`;accuracyLabel.textContent=`${a}%`;accuracyBar.style.width=`${a}%`;
+}
+function renderPlayerList(){
+ playerList.innerHTML="";
+ if(!players.length){playerList.innerHTML='<div class="empty">Nenhum jogador cadastrado.</div>';return}
+ [...players].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).forEach(p=>{
+  const row=document.createElement("div");row.className="player-row";
+  row.innerHTML=`<div class="player-row-name">${escapeHtml(p.name)}</div><button class="remove-btn">🗑️ Remover</button>`;
+  row.querySelector("button").addEventListener("click",()=>requestRemovePlayer(p.id,p.name));playerList.appendChild(row);
+ });
+}
+function renderHistory(){
+ historyEl.innerHTML="";
+ if(!history.length){historyEl.innerHTML='<div class="empty">Nenhuma jogada registrada ainda.</div>';return}
+ history.forEach(i=>{
+  const row=document.createElement("div");row.className="history-item";
+  const icon=i.action_type==="correct"?"✅":i.action_type==="wrong"?"❌":"↩️",v=i.action_type==="undo"?-Math.abs(i.points_change):i.points_change;
+  row.innerHTML=`<div class="history-icon">${icon}</div><div class="history-main"><div class="history-title">${escapeHtml(i.player_name)}</div><div class="history-meta">${escapeHtml(i.actor_name||"Alguém")} · ${formatDate(i.created_at)}</div></div><div class="history-points ${v>=0?"positive":"negative"}">${v>0?"+":""}${v} pts</div>`;
+  historyEl.appendChild(row);
+ });
+}
+
+function animateScore(points){
+ selectedScore.classList.remove("pop");void selectedScore.offsetWidth;selectedScore.classList.add("pop");
+ const r=selectedScore.getBoundingClientRect(),f=document.createElement("div");f.className=`floating-points ${points>0?"floating-positive":"floating-negative"}`;f.textContent=points>0?`+${points}`:`${points}`;f.style.left=`${r.left+r.width/2}px`;f.style.top=`${r.top}px`;document.body.appendChild(f);setTimeout(()=>f.remove(),850);
+}
+async function addPoints(value){
+ if(selectedId===null)return;const identity=getIdentity();if(!identity){openIdentityModal();showToast("Defina quem você é antes de registrar uma jogada.");return}
+ correctBtn.disabled=wrongBtn.disabled=undoBtn.disabled=true;animateScore(value);value===10?(soundCorrect(),vibrate([30,40,50])):(soundWrong(),vibrate([70]));
+ const {error}=await supabaseClient.rpc("add_score",{player_id:selectedId,score_change:value,actor_name:identity});
+ if(error){console.error(error);showToast("Não foi possível registrar a pontuação.")}else showToast(value===10?"✅ Acerto registrado!":"❌ Erro registrado!");
+ await Promise.all([loadPlayers(),loadHistory()]);
+}
+async function undoLastAction(){
+ if(selectedId===null)return;const identity=getIdentity();if(!identity){openIdentityModal();showToast("Defina quem você é antes de desfazer.");return}
+ const p=players.find(x=>x.id===selectedId);if(!p||p.last_action===null)return;undoBtn.disabled=true;soundUndo();vibrate([50,40,50]);
+ const {error}=await supabaseClient.rpc("undo_score",{player_id:selectedId,actor_name:identity});
+ if(error){console.error(error);showToast("Não foi possível desfazer.")}else showToast("↩️ Última ação desfeita!");
+ await Promise.all([loadPlayers(),loadHistory()]);
+}
+async function addPlayer(){
+ const name=newPlayer.value.trim();if(!name)return;
+ if(players.some(p=>p.name.toLowerCase()===name.toLowerCase())){showToast("Esse jogador já existe.");return}
+ addBtn.disabled=true;const {data,error}=await supabaseClient.from("players").insert({name}).select().single();addBtn.disabled=false;
+ if(error){console.error(error);showToast("Não foi possível adicionar o jogador.");return}
+ selectedId=data.id;newPlayer.value="";showToast(`${name} entrou no ranking!`);await loadPlayers();
+}
+function requestRemovePlayer(id,name){
+ openConfirm("🗑️ Remover jogador?",`Isso removerá ${name} do ranking e apagará o histórico dessa pessoa. Essa ação não pode ser desfeita.`,()=>removePlayer(id,name));
+}
+async function removePlayer(id,name){
+ const identity=getIdentity();if(!identity){closeConfirm();openIdentityModal();showToast("Defina quem você é antes de remover.");return}
+ closeConfirm();
+ const {error}=await supabaseClient.rpc("remove_player",{player_id:id,actor_name:identity});
+ if(error){console.error(error);showToast("Não foi possível remover o jogador.");return}
+ if(selectedId===id)selectedId=null;showToast(`🗑️ ${name} foi removido.`);await Promise.all([loadPlayers(),loadHistory()]);
+}
+async function resetScores(){
+ const identity=getIdentity();if(!identity){openIdentityModal();showToast("Defina quem você é antes de zerar.");return}
+ openConfirm("🔄 Zerar ranking?","Isso zerará pontos, questões, acertos e erros de todos e apagará todo o histórico. Os jogadores continuarão cadastrados.",async()=>{
+  closeConfirm();resetBtn.disabled=true;const {error}=await supabaseClient.rpc("reset_scores",{actor_name:identity});resetBtn.disabled=false;
+  if(error){console.error(error);showToast("Não foi possível zerar o ranking.");return}
+  showToast("🔄 Ranking zerado!");await Promise.all([loadPlayers(),loadHistory()]);
+ });
+}
+function escapeHtml(t){const d=document.createElement("div");d.textContent=t;return d.innerHTML}
+function formatDate(s){return new Date(s).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+
+select.addEventListener("change",e=>{selectedId=Number(e.target.value);render()});
+correctBtn.addEventListener("click",()=>addPoints(10));wrongBtn.addEventListener("click",()=>addPoints(5));undoBtn.addEventListener("click",undoLastAction);
+addBtn.addEventListener("click",addPlayer);newPlayer.addEventListener("keydown",e=>{if(e.key==="Enter")addPlayer()});resetBtn.addEventListener("click",resetScores);
+refreshBtn.addEventListener("click",async()=>{refreshBtn.disabled=true;await Promise.all([loadPlayers(),loadHistory()]);refreshBtn.disabled=false;showToast("🔄 Ranking atualizado!")});
+themeBtn.addEventListener("click",toggleTheme);identityBtn.addEventListener("click",openIdentityModal);identityCancelBtn.addEventListener("click",closeIdentityModal);
+identitySaveBtn.addEventListener("click",()=>{const n=identityInput.value.trim();if(!n){showToast("Digite seu nome.");return}setIdentity(n);closeIdentityModal();showToast(`👤 Identidade definida: ${n}`)});
+identityInput.addEventListener("keydown",e=>{if(e.key==="Enter")identitySaveBtn.click()});
+confirmCancelBtn.addEventListener("click",closeConfirm);confirmOkBtn.addEventListener("click",()=>{if(confirmCallback){const cb=confirmCallback;confirmCallback=null;cb()}});
+
+supabaseClient.channel("study-rank-live").on("postgres_changes",{event:"*",schema:"public",table:"players"},loadPlayers).on("postgres_changes",{event:"*",schema:"public",table:"study_rank_history"},loadHistory).subscribe(status=>{if(status==="SUBSCRIBED")setConnectionStatus("🟢 Ranking online em tempo real",true)});
+
+loadTheme();updateIdentityUI();Promise.all([loadPlayers(),loadHistory()]);
+</script>
+</body>
+</html>
