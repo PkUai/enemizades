@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4f6f8">
+<title>Study Rank</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}:root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#68727d;--border:#e1e5e8;--line:#edf0f2;--soft:#eef1f4;--green-bg:#dff5e7;--green:#176b36;--red-bg:#ffe5e5;--red:#a12525;--gold-bg:#fff5d6;--gold:#8b6500;--shadow:0 5px 22px rgba(0,0,0,.055)}
+body.dark{--bg:#101418;--card:#171c21;--text:#f1f4f6;--muted:#9aa5ae;--border:#2a3239;--line:#252c32;--soft:#242b31;--green-bg:#173b27;--green:#78d89a;--red-bg:#3b2020;--red:#ff8f8f;--gold-bg:#3d3215;--gold:#ffd76b;--shadow:0 5px 24px rgba(0,0,0,.22)}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);transition:.25s}
+button,input,select{font:inherit}button{border:0;cursor:pointer;color:var(--text)}button:disabled{opacity:.45;cursor:not-allowed}
+.app{width:min(780px,100%);margin:auto;padding:22px 16px 56px}
+header{text-align:center;margin-bottom:20px}header h1{margin:0;font-size:clamp(28px,7vw,36px);letter-spacing:-.7px}header p{margin:7px 0 0;color:var(--muted)}
+.top-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:14px}.connection,.identity-status{margin-top:8px;font-size:12px;color:var(--muted)}.online{color:var(--green)}.offline{color:var(--red)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:15px;box-shadow:var(--shadow);transition:.25s}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 15px}.card-title h2{margin:0;font-size:20px}
+label{display:block;font-size:13px;font-weight:800;margin-bottom:8px}
+select,input{width:100%;border:1px solid #ccd2d7;border-radius:13px;padding:13px 14px;font-size:16px;background:var(--card);color:var(--text);outline:0;transition:.18s}
+body.dark select,body.dark input{border-color:var(--border)}select:focus,input:focus{border-color:#557dcc;box-shadow:0 0 0 3px rgba(85,125,204,.15)}
+.player{text-align:center;margin:18px 0 17px}.player h2{margin:0;font-size:24px}.score{font-size:clamp(38px,10vw,48px);font-weight:900;margin-top:5px;letter-spacing:-1.5px}.score.pop{animation:scorePop .5s ease}
+@keyframes scorePop{35%{transform:scale(1.13)}100%{transform:scale(1)}}
+.muted{color:var(--muted);font-size:14px}.buttons{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.action-btn,.secondary,.danger-btn,.remove-btn{border-radius:14px;padding:14px 12px;font-size:15px;font-weight:850;transition:transform .08s,filter .18s}.action-btn:active,.secondary:active,.danger-btn:active,.remove-btn:active{transform:scale(.97)}
+.correct{background:var(--green-bg);color:var(--green)}.wrong{background:var(--red-bg);color:var(--red)}.undo,.secondary{background:var(--soft);color:var(--text)}.danger-btn,.remove-btn{background:var(--red-bg);color:var(--red)}
+.champion{text-align:center;padding:7px 0 4px}.champion.trophy-animate{animation:championPulse .65s ease}.champion-trophy{font-size:58px;line-height:1;margin-bottom:7px}.champion-name{font-size:28px;font-weight:950}.champion-points{margin-top:4px;color:var(--muted);font-weight:650}
+@keyframes championPulse{40%{transform:scale(1.035)}100%{transform:scale(1)}}
+.ranking{list-style:none;padding:0;margin:0}.ranking li{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:11px;padding:12px 7px;border-bottom:1px solid var(--line);border-radius:13px;transition:.25s}.ranking li:last-child{border:0}.ranking li.rank-first{background:var(--gold-bg);box-shadow:inset 0 0 0 1px rgba(139,101,0,.12)}.ranking li.position-changed{animation:rankMove .7s ease}
+@keyframes rankMove{28%{transform:translateY(-3px) scale(1.025)}55%{transform:translateY(1px) scale(1.012)}100%{transform:none}}
+.position{text-align:center;font-size:21px;font-weight:850}.name{font-weight:850}.details{font-size:12px;color:var(--muted);margin-top:4px}.points{font-weight:900;text-align:right;white-space:nowrap}.rank-change{display:inline-block;margin-left:6px;font-size:11px;font-weight:900}.rank-up{color:var(--green)}.rank-down{color:var(--red)}
+.floating-points{position:fixed;z-index:300;pointer-events:none;font-weight:950;font-size:24px;animation:floatPoints .8s ease forwards}.floating-positive{color:var(--green)}.floating-negative{color:var(--red)}
+@keyframes floatPoints{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}20%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-65px) scale(1.05)}}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:var(--soft);border-radius:15px;padding:14px}.stat-label{color:var(--muted);font-size:11px;font-weight:700;margin-bottom:4px}.stat-value{font-size:23px;font-weight:950}
+.accuracy-wrap{margin-top:14px}.accuracy-head{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px;color:var(--muted);font-weight:750}.progress{height:9px;background:var(--soft);border-radius:99px;overflow:hidden}.progress-bar{height:100%;width:0;border-radius:99px;background:var(--green);transition:width .5s}
+.history{max-height:440px;overflow:auto}.history-item{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:11px 5px;border-bottom:1px solid var(--line)}.history-item:last-child{border:0}.history-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:var(--soft)}.history-main{min-width:0}.history-title{font-weight:850}.history-meta{color:var(--muted);font-size:11px;margin-top:3px}.history-points{font-weight:900;white-space:nowrap}.positive{color:var(--green)}.negative{color:var(--red)}
+.add-player{display:flex;gap:8px}.add-player input{flex:1}.player-list{margin-top:13px;border-top:1px solid var(--line)}.player-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.player-row:last-child{border:0}.player-row-name{font-weight:800;overflow:hidden;text-overflow:ellipsis}.remove-btn{padding:9px 11px;font-size:12px}.admin{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+.empty,.loading{text-align:center;color:var(--muted);padding:20px 0}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.56);display:flex;align-items:center;justify-content:center;padding:18px;z-index:100;backdrop-filter:blur(3px)}.modal-backdrop.hidden{display:none}.modal{width:min(440px,100%);background:var(--card);color:var(--text);border-radius:21px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.3);animation:modalIn .2s ease}.modal h2{margin:0 0 8px}.modal-actions{display:flex;gap:8px;margin-top:13px}.modal-actions button{flex:1}@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:#17202a;color:#fff;padding:11px 16px;border-radius:13px;font-weight:750;opacity:0;pointer-events:none;transition:.2s;z-index:200;max-width:calc(100% - 32px);text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:650px){.buttons{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.app{padding-left:11px;padding-right:11px}.card{padding:16px;border-radius:17px}.top-actions button{font-size:12px;padding:10px 11px}.ranking li{grid-template-columns:34px 1fr auto;gap:7px}.history-item{grid-template-columns:36px 1fr auto}}
+
+.tabs{display:flex;gap:8px;margin:0 0 15px;overflow:auto;padding-bottom:2px}
+.tab{flex:1;min-width:120px;background:var(--soft);border-radius:13px;padding:12px 14px;font-weight:850;transition:.18s}
+.tab.active{background:var(--text);color:var(--card)}
+.tab-panel.hidden,.hidden{display:none!important}
+.alliance-box{border:1px solid var(--border);border-radius:17px;padding:17px;background:var(--soft)}
+.alliance-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.alliance-name{font-size:22px;font-weight:950}.alliance-tag{color:var(--muted);font-size:12px;font-weight:850}
+.alliance-meta{color:var(--muted);font-size:13px;margin-top:5px}
+.alliance-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.alliance-actions button{flex:1}
+.alliance-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 6px;border-bottom:1px solid var(--line)}
+.alliance-row:last-child{border:0}.alliance-row-name{font-weight:900}.alliance-row-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.create-alliance-btn{width:100%;margin-top:13px}.weekly-champion{text-align:center;margin-top:14px}
+.weekly-medal{font-size:42px}.weekly-winner{font-weight:950;font-size:20px}.weekly-points{color:var(--muted);font-size:13px}
+.sinapse-card{text-align:center}.sinapse-main{padding:8px 0 17px}.sinapse-days{font-size:50px;font-weight:950;letter-spacing:-1px}.sinapse-label{font-size:14px;color:var(--muted);font-weight:750}
+.sinapse-countdown{font-size:24px;font-weight:900;margin-top:9px}.sinapse-active{color:var(--text)}.sinapse-expired{color:var(--red)}
+.sinapse-rule{border-top:1px solid var(--line);padding-top:15px;color:var(--muted);font-size:13px}
+.sinapse-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 6px;border-bottom:1px solid var(--line)}
+.sinapse-row:last-child{border:0}.sinapse-row-name{font-weight:850}.sinapse-row-value{font-weight:950}
+.member-list{margin-top:13px}.member-item{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.member-item:last-child{border:0}.member-role{color:var(--muted)}
+@media(max-width:430px){.tabs{gap:5px}.tab{min-width:100px;padding:11px 9px;font-size:12px}}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>🏆 Ranking de Estudos</h1><p>Faça questões e suba no ranking</p>
+<div class="top-actions">
+<button class="secondary" id="identityBtn">👤 Definir quem sou</button>
+<button class="secondary" id="themeBtn">🌙 Modo escuro</button>
+<button class="secondary" id="refreshBtn">🔄 Atualizar</button>
+</div>
+<div id="connectionStatus" class="connection">Conectando...</div>
+<div id="identityStatus" class="identity-status">Você: não definido</div>
+</header>
+
+<section class="card">
+<label for="playerSelect">Selecione o jogador</label>
+<select id="playerSelect"><option>Carregando...</option></select>
+<div class="player"><h2 id="selectedName">—</h2><div class="score" id="selectedScore">0 pts</div><div class="muted" id="selectedStats">0 questões · 0 acertos · 0 erros</div></div>
+<div class="buttons">
+<button class="action-btn correct" id="correctBtn">✅ Acertei<br>+10 pontos</button>
+<button class="action-btn wrong" id="wrongBtn">❌ Errei<br>+5 pontos</button>
+<button class="action-btn undo" id="undoBtn" disabled>↩️ Desfazer<br>última ação</button>
+</div>
+</section>
+
+
+<div class="tabs" aria-label="Seções do Study Rank">
+  <button class="tab active" data-tab="rankingTab">🏆 Ranking</button>
+  <button class="tab" data-tab="alliancesTab">⚔️ Alianças</button>
+  <button class="tab" data-tab="sinapseTab">⚡ Sinapse</button>
+</div>
+
+<div id="rankingTab" class="tab-panel"><section class="card">
+<div class="card-title"><h2>🏆 Campeão atual</h2></div>
+<div id="champion" class="champion"><div class="empty">Carregando campeão...</div></div>
+</section>
+<section class="card"><div class="card-title"><h2>🏆 Ranking</h2></div><ol class="ranking" id="ranking"><li class="loading">Carregando ranking...</li></ol></section>
+<section class="card">
+<div class="card-title"><h2>📊 Estatísticas</h2></div>
+<div class="stats-grid">
+<div class="stat"><div class="stat-label">Jogadores</div><div class="stat-value" id="totalPlayers">0</div></div>
+<div class="stat"><div class="stat-label">Questões</div><div class="stat-value" id="totalQuestions">0</div></div>
+<div class="stat"><div class="stat-label">Acertos</div><div class="stat-value" id="totalCorrect">0</div></div>
+<div class="stat"><div class="stat-label">Erros</div><div class="stat-value" id="totalWrong">0</div></div>
+<div class="stat"><div class="stat-label">Pontos</div><div class="stat-value" id="totalPoints">0</div></div>
+<div class="stat"><div class="stat-label">Precisão</div><div class="stat-value" id="totalAccuracy">0%</div></div>
+</div>
+<div class="accuracy-wrap"><div class="accuracy-head"><span>Precisão geral</span><strong id="accuracyLabel">0%</strong></div><div class="progress"><div class="progress-bar" id="accuracyBar"></div></div></div>
+</section>
+<section class="card"><div class="card-title"><h2>📜 Histórico</h2><span class="muted">últimas 100</span></div><div class="history" id="history"><div class="loading">Carregando histórico...</div></div></section>
+<section class="card">
+<div class="card-title"><h2>👥 Jogadores</h2></div>
+<div class="add-player">
+<input id="newPlayer" type="text" maxlength="30" placeholder="Nome do novo jogador">
+<button class="action-btn correct" id="addBtn">➕ Adicionar</button>
+</div>
+<div id="playerList" class="player-list"></div>
+<div class="admin">
+<span class="muted">Ranking compartilhado online</span>
+<button class="danger-btn" id="resetBtn">🗑️ Apagar todos os progressos</button>
+</div>
+</section></div><div id="alliancesTab" class="tab-panel hidden"><section class="card">
+    <div class="card-title">
+      <h2>⚔️ Minha aliança</h2>
+    </div>
+    <div id="myAlliance">
+      <div class="empty">Carregando alianças...</div>
+    </div>
+    <button class="action-btn correct create-alliance-btn" id="createAllianceBtn">➕ Criar uma aliança</button>
+  </section>
+<section class="card">
+    <div class="card-title">
+      <h2>🌎 Alianças disponíveis</h2>
+      <button class="secondary" id="allianceRefreshBtn">🔄</button>
+    </div>
+    <div id="allianceList" class="alliance-list">
+      <div class="empty">Nenhuma aliança criada ainda.</div>
+    </div>
+  </section>
+<section class="card"><div class="card-title"><h2>🏅 Ranking interno da aliança</h2></div><ol class="ranking" id="internalRanking"></ol></section>
+<section class="card">
+    <div class="card-title"><h2>⚔️ Aliança x Aliança — Semana</h2></div>
+    <div class="muted" id="weekLabel">Semana atual</div>
+    <ol class="ranking" id="weeklyRanking" style="margin-top:8px"></ol>
+    <div id="weeklyChampion" class="weekly-champion"></div>
+  </section>
+<section class="card">
+    <div class="card-title"><h2>🏆 Ranking permanente</h2></div>
+    <div class="muted" style="margin-bottom:10px">Pontuação acumulada das alianças.</div>
+    <ol class="ranking" id="allianceRanking"></ol>
+  </section>
+<section class="card">
+<div class="card-title"><h2>📊 Estatísticas da aliança ingressada</h2></div>
+<div class="stats-grid">
+<div class="stat"><div class="stat-label">Jogadores</div><div class="stat-value" id="allianceTotalPlayers">0</div></div>
+<div class="stat"><div class="stat-label">Questões</div><div class="stat-value" id="allianceTotalQuestions">0</div></div>
+<div class="stat"><div class="stat-label">Acertos</div><div class="stat-value" id="allianceTotalCorrect">0</div></div>
+<div class="stat"><div class="stat-label">Erros</div><div class="stat-value" id="allianceTotalWrong">0</div></div>
+<div class="stat"><div class="stat-label">Pontos</div><div class="stat-value" id="allianceTotalPoints">0</div></div>
+<div class="stat"><div class="stat-label">Precisão</div><div class="stat-value" id="allianceTotalAccuracy">0%</div></div>
+</div>
+<div class="accuracy-wrap"><div class="accuracy-head"><span>Precisão da aliança</span><strong id="allianceAccuracyLabel">0%</strong></div><div class="progress"><div class="progress-bar" id="allianceAccuracyBar"></div></div></div>
+</section>
+<section class="card"><div class="card-title"><h2>📜 Histórico</h2><span class="muted">últimas 100</span></div><div class="history" id="allianceHistory"><div class="loading">Carregando histórico...</div></div></section></div><div id="sinapseTab" class="tab-panel hidden"><section class="card sinapse-card">
+    <div class="card-title"><h2>⚡ Minha Sinapse</h2></div>
+    <div id="sinapseMain" class="sinapse-main">
+      <div class="empty">Carregando...</div>
+    </div></section>
+<section class="card">
+    <div class="card-title"><h2>🧠 Ranking de Sinapse</h2></div>
+    <div id="sinapseRanking">
+      <div class="empty">Nenhum jogador cadastrado.</div>
+    </div>
+  </section>
+<section class="card"><div class="card-title"><h2>📜 Histórico</h2><span class="muted">últimas 100</span></div><div class="history" id="sinapseHistory"><div class="loading">Carregando histórico...</div></div></section></div></div>
+<div class="modal-backdrop hidden" id="identityModal"><div class="modal">
+<h2>👤 Quem é você?</h2><p class="muted">Seu nome aparece no histórico para mostrar quem registrou cada ação.</p>
+<input id="identityInput" type="text" maxlength="30" placeholder="Seu nome">
+<div class="modal-actions"><button class="secondary" id="identityCancelBtn">Cancelar</button><button class="correct action-btn" id="identitySaveBtn">Salvar</button></div>
+</div></div>
+
+<div class="modal-backdrop hidden" id="confirmModal"><div class="modal">
+<h2 id="confirmTitle">Confirmar</h2><p class="muted" id="confirmText"></p>
+<div class="modal-actions"><button class="secondary" id="confirmCancelBtn">Cancelar</button><button class="danger-btn" id="confirmOkBtn">Confirmar</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* STUDY RANK ONLINE V6 — dados e operações persistidos no Supabase.
+   localStorage é usado apenas para tema e nome de quem registra as ações. */
+const SUPABASE_URL="https://vuzebrfvrmwfhrrnyctn.supabase.co";
+const SUPABASE_KEY="sb_publishable_BoyywHdHF5Bkxo-SpRxK0w_uNFclBV3";
+const supabaseClient=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY);
+let state={players:[],history:[],alliances:[],allianceMembers:[],permanentPoints:[],weeklyPoints:[],weeklyWinners:[]},
+    players=[],history=[],alliances=[],allianceMembers=[],allianceRankingData=[],weeklyRankingData=[],
+    selectedId=null,previousRanks=new Map(),previousLeaderId=null,audioContext=null,confirmCallback=null,sinapseTimer=null,
+    busy=false,loaded=false,loadPromise=null,reloadRequested=false,realtimeTimer=null;
+const $=id=>document.getElementById(id);
+const select=$("playerSelect"),selectedName=$("selectedName"),selectedScore=$("selectedScore"),selectedStats=$("selectedStats");
+const ranking=$("ranking"),historyEl=$("history"),champion=$("champion"),playerList=$("playerList");
+const correctBtn=$("correctBtn"),wrongBtn=$("wrongBtn"),undoBtn=$("undoBtn"),addBtn=$("addBtn"),newPlayer=$("newPlayer"),resetBtn=$("resetBtn");
+const refreshBtn=$("refreshBtn"),themeBtn=$("themeBtn"),identityBtn=$("identityBtn"),identityStatus=$("identityStatus");
+const identityModal=$("identityModal"),identityInput=$("identityInput"),identitySaveBtn=$("identitySaveBtn"),identityCancelBtn=$("identityCancelBtn");
+const confirmModal=$("confirmModal"),confirmTitle=$("confirmTitle"),confirmText=$("confirmText"),confirmCancelBtn=$("confirmCancelBtn"),confirmOkBtn=$("confirmOkBtn");
+const toast=$("toast"),connectionStatus=$("connectionStatus"),totalPlayers=$("totalPlayers"),totalQuestions=$("totalQuestions"),totalCorrect=$("totalCorrect"),totalWrong=$("totalWrong"),totalAccuracy=$("totalAccuracy"),totalPoints=$("totalPoints"),accuracyLabel=$("accuracyLabel"),accuracyBar=$("accuracyBar");
+const myAllianceEl=$("myAlliance"),allianceListEl=$("allianceList"),allianceRankingEl=$("allianceRanking"),weeklyRankingEl=$("weeklyRanking"),weeklyChampionEl=$("weeklyChampion"),weekLabel=$("weekLabel"),sinapseMain=$("sinapseMain"),sinapseRankingEl=$("sinapseRanking");
+
+function updateActionState(){
+ const p=players.find(x=>x.id===selectedId);
+ correctBtn.disabled=wrongBtn.disabled=!loaded||busy||!p;
+ undoBtn.disabled=!loaded||busy||!p?.last_action?.history_id;
+ addBtn.disabled=resetBtn.disabled=busy||!loaded;
+ $("createAllianceBtn").disabled=busy||!loaded||!p||!!getCurrentAlliance();
+ document.querySelectorAll(".remove-btn,.alliance-actions button,.alliance-row button").forEach(button=>{if(busy||!loaded)button.disabled=true});
+}
+async function loadData(){
+ reloadRequested=true;
+ if(loadPromise)return loadPromise;
+ loadPromise=(async()=>{
+  try{
+   if(!supabaseClient)throw new Error("Não foi possível carregar a conexão. Verifique a internet e recarregue a página.");
+   while(reloadRequested){
+    reloadRequested=false;
+    const {data,error}=await supabaseClient.rpc("sr6_snapshot");
+    if(error)throw error;
+    if(!data||!Array.isArray(data.players))throw new Error("Execute primeiro o SQL de atualização v6.");
+    state=data;players=data.players;history=data.history;alliances=data.alliances;allianceMembers=data.allianceMembers;loaded=true;render();
+    setConnectionStatus("🟢 Ranking online · dados sincronizados",true);
+   }
+  }catch(error){console.error(error);loaded=false;setConnectionStatus("🔴 Falha de conexão — "+(error.message||"Tente atualizar."),false);updateActionState();}
+ })();
+ try{await loadPromise}finally{loadPromise=null}
+}
+async function runOperation(name,args,message){
+ if(busy||!loaded){showToast("Aguarde a conexão e a atualização dos dados.");return false}
+ busy=true;updateActionState();
+ try{
+  const {data,error}=await supabaseClient.rpc(name,args);if(error)throw error;
+  if(name==="sr6_add_player")selectedId=Number(data);
+  await loadData();showToast(message);return true;
+ }catch(error){console.error(error);showToast(error.message||"Não foi possível concluir a operação.");return false}
+ finally{busy=false;render();updateActionState()}
+}
+
+function requireIdentity(){const identity=getIdentity();if(!identity){openIdentityModal();showToast("Defina quem você é antes de registrar esta ação.");return null}return identity}
+
+function getIdentity(){return localStorage.getItem("studyRank_identity")||""}
+function setIdentity(n){localStorage.setItem("studyRank_identity",n);updateIdentityUI()}
+function updateIdentityUI(){const n=getIdentity();identityStatus.textContent=n?`Você: ${n}`:"Você: não definido"}
+function openIdentityModal(){identityInput.value=getIdentity();identityModal.classList.remove("hidden");setTimeout(()=>identityInput.focus(),50)}
+function closeIdentityModal(){identityModal.classList.add("hidden")}
+function loadTheme(){const d=localStorage.getItem("studyRank_theme")==="dark";document.body.classList.toggle("dark",d);themeBtn.textContent=d?"☀️ Modo claro":"🌙 Modo escuro"}
+function toggleTheme(){const d=!document.body.classList.contains("dark");document.body.classList.toggle("dark",d);localStorage.setItem("studyRank_theme",d?"dark":"light");themeBtn.textContent=d?"☀️ Modo claro":"🌙 Modo escuro"}
+let toastTimer;
+function showToast(m){toast.textContent=m;toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("show"),2300)}
+function openConfirm(t,txt,cb){confirmTitle.textContent=t;confirmText.textContent=txt;confirmCallback=cb;confirmModal.classList.remove("hidden")}
+function closeConfirm(){confirmModal.classList.add("hidden");confirmCallback=null}
+function getAudioContext(){if(!audioContext)audioContext=new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==="suspended")audioContext.resume();return audioContext}
+function playTone(f,d,type="sine"){try{const c=getAudioContext(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;o.connect(g);g.connect(c.destination);const n=c.currentTime;g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(.18,n+.01);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d+.02)}catch(e){}}
+function soundCorrect(){playTone(660,.1);setTimeout(()=>playTone(880,.14),80)}
+function soundWrong(){playTone(260,.18,"sawtooth")}
+function soundUndo(){playTone(500,.1,"triangle");setTimeout(()=>playTone(350,.15,"triangle"),90)}
+function vibrate(p){if("vibrate"in navigator)navigator.vibrate(p)}
+function setConnectionStatus(t,on){connectionStatus.textContent=t;connectionStatus.className=on?"connection online":"connection offline"}
+
+function render(){
+  if(selectedId===null||!players.some(p=>p.id===selectedId))selectedId=players[0]?.id??null;
+  renderSelect();renderSelectedPlayer();renderRanking();renderStats();renderChampion();renderPlayerList();
+  renderSinapse();renderSinapseRanking();renderAlliances();renderAllianceRankings();renderInternalRanking();renderAllianceStats();renderHistory();updateActionState();
+}
+function renderSelect(){
+  select.innerHTML="";
+  players.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;select.appendChild(o)});
+  if(selectedId!==null)select.value=selectedId;
+}
+function renderSelectedPlayer(){
+  const p=players.find(x=>x.id===selectedId);
+  resetBtn.classList.remove("hidden");
+  if(!p){selectedName.textContent="—";selectedScore.textContent="0 pts";selectedStats.textContent="Selecione ou adicione um jogador.";correctBtn.disabled=true;wrongBtn.disabled=true;undoBtn.disabled=true;return}
+  if(selectedName)selectedName.textContent=p.name;
+  if(selectedScore)selectedScore.textContent=`${p.points} pts`;
+  if(selectedStats)selectedStats.textContent=`${p.questions} questões · ${p.correct} acertos · ${p.wrong} erros · 🧠 ${p.sinapse_days||0} dias`;
+  if(correctBtn)correctBtn.disabled=false;
+  if(wrongBtn)wrongBtn.disabled=false;
+  if(undoBtn)undoBtn.disabled=p.last_action===null;
+}
+function renderRanking(){
+  ranking.innerHTML="";
+  if(!players.length){ranking.innerHTML='<li class="empty">Nenhum jogador cadastrado.</li>';return}
+  const sorted=sortedPlayers();
+  sorted.forEach((p,i)=>{
+    const li=document.createElement("li"),old=previousRanks.get(p.id),nr=i+1;
+    if(i===0)li.classList.add("rank-first");
+    if(old&&old!==nr)li.classList.add("position-changed");
+    const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}º`,acc=p.questions?Math.round(p.correct/p.questions*100):0;
+    li.innerHTML=`<div class="position">${medal}</div><div><div class="name">${escapeHtml(p.name)}</div><div class="details">${p.questions} questões · ${acc}% de acerto</div></div><div class="points">${p.points} pts</div>`;
+    ranking.appendChild(li);
+  });
+  previousRanks=new Map(sorted.map((p,i)=>[p.id,i+1]));
+}
+function renderChampion(){
+  if(!players.length){champion.innerHTML='<div class="empty">Nenhum jogador cadastrado.</div>';return}
+  const leader=[...players].sort((a,b)=>b.points-a.points)[0];
+  champion.innerHTML=`<div class="champion-trophy">🏆</div><div class="champion-name">${escapeHtml(leader.name)}</div><div class="champion-points">${leader.points} pontos</div>`;
+}
+function renderStats(){
+  const q=players.reduce((s,p)=>s+p.questions,0),c=players.reduce((s,p)=>s+p.correct,0),w=players.reduce((s,p)=>s+p.wrong,0),pts=players.reduce((s,p)=>s+p.points,0),a=q?Math.round(c/q*100):0;
+  totalPlayers.textContent=players.length;totalQuestions.textContent=q;totalCorrect.textContent=c;totalWrong.textContent=w;totalPoints.textContent=pts;totalAccuracy.textContent=`${a}%`;accuracyLabel.textContent=`${a}%`;accuracyBar.style.width=`${a}%`;
+}
+function renderPlayerList(){
+  playerList.innerHTML="";
+  if(!players.length){playerList.innerHTML='<div class="empty">Nenhum jogador cadastrado.</div>';return}
+  [...players].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).forEach(p=>{
+    const row=document.createElement("div");row.className="player-row";
+    row.innerHTML=`<div class="player-row-name">${escapeHtml(p.name)}</div><button class="remove-btn">🗑️ Remover</button>`;
+    row.querySelector("button").addEventListener("click",()=>requestRemovePlayer(p.id,p.name));playerList.appendChild(row);
+  });
+}
+
+function sameHistoryPlayer(a,b){return a.player_id!=null&&b.player_id!=null?Number(a.player_id)===Number(b.player_id):a.player_name===b.player_name}
+
+function findHistoryPlayer(i){return players.find(p=>i.player_id!=null?Number(p.id)===Number(i.player_id):p.name===i.player_name)}
+function removeHistoryScore(id){
+ const i=history.find(x=>x.id===id);if(!i||i.reversed)return;
+ const actor=requireIdentity();if(!actor)return;
+ openConfirm("🗑️ Apagar esta pontuação?",`Remover o lançamento de ${i.points_change} pontos de ${i.player_name}? Os pontos e as estatísticas serão corrigidos no banco.`,()=>runOperation("sr6_delete_score",{p_history:id,p_actor:actor},"Pontuação removida do histórico."));
+}
+
+
+function renderHistoryList(target,items){
+  const historyEl=target;
+  historyEl.innerHTML="";
+  if(!items.length){historyEl.innerHTML='<div class="empty">Nenhuma jogada registrada ainda.</div>';return}
+  items.slice().reverse().slice(0,100).forEach(i=>{
+    const row=document.createElement("div");row.className="history-item";
+    const icon=i.action_type==="correct"?"✅":i.action_type==="wrong"?"❌":"↩️",v=i.action_type==="undo"?-Math.abs(i.points_change):i.points_change;
+    row.innerHTML=`<div class="history-icon">${icon}</div><div class="history-main"><div class="history-title">${escapeHtml(i.player_name)}</div><div class="history-meta">${escapeHtml(i.actor_name||"Alguém")} · ${formatDate(i.created_at)}</div></div><div class="history-points ${v>=0?"positive":"negative"}">${v>0?"+":""}${v} pts</div>`;
+    if(["correct","wrong"].includes(i.action_type)&&!i.reversed&&findHistoryPlayer(i)){
+      const button=document.createElement("button");button.className="remove-btn";button.textContent="🗑️ Apagar";button.onclick=()=>removeHistoryScore(i.id);
+      row.querySelector(".history-main").appendChild(button);
+    }else if(i.reversed){const label=document.createElement("div");label.className="details";label.textContent="Pontuação já desfeita";row.querySelector(".history-main").appendChild(label)}
+    historyEl.appendChild(row);
+  });
+}
+
+function sortedPlayers(){return [...players].sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name,"pt-BR"))}
+function currentAlliancePlayers(){
+  const a=getCurrentAlliance();if(!a)return [];
+  const ids=new Set(allianceMembers.filter(m=>m.alliance_id===a.id).map(m=>Number(m.player_id)));
+  return sortedPlayers().filter(p=>ids.has(Number(p.id)));
+}
+function renderInternalRanking(){
+  const members=currentAlliancePlayers();
+  $("internalRanking").innerHTML=members.length?members.map((p,i)=>`<li class="${i===0?"rank-first":""}"><div class="position">${i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}º`}</div><div><div class="name">${escapeHtml(p.name)}</div><div class="details">${p.questions} questões · ${p.questions?Math.round(p.correct/p.questions*100):0}% de acerto</div></div><div class="points">${p.points} pts</div></li>`).join(""):'<li class="empty">O jogador selecionado não faz parte de uma aliança.</li>';
+}
+function renderAllianceStats(){
+  const members=currentAlliancePlayers(),q=members.reduce((s,p)=>s+p.questions,0),c=members.reduce((s,p)=>s+p.correct,0),w=members.reduce((s,p)=>s+p.wrong,0),pts=members.reduce((s,p)=>s+p.points,0),acc=q?Math.round(c/q*100):0;
+  for(const [key,value] of Object.entries({TotalPlayers:members.length,TotalQuestions:q,TotalCorrect:c,TotalWrong:w,TotalPoints:pts,TotalAccuracy:`${acc}%`,AccuracyLabel:`${acc}%`}))$("alliance"+key).textContent=value;
+  $("allianceAccuracyBar").style.width=`${acc}%`;
+}
+function renderHistory(){
+  renderHistoryList(historyEl,history);
+  const a=getCurrentAlliance(),members=currentAlliancePlayers();
+  renderHistoryList($("allianceHistory"),a?history.filter(i=>i.alliance_id!=null?i.alliance_id===a.id:members.some(p=>i.player_id!=null?Number(i.player_id)===Number(p.id):p.name===i.player_name)):[]);
+  const p=players.find(x=>x.id===selectedId);
+  renderHistoryList($("sinapseHistory"),p?history.filter(i=>i.player_id!=null?Number(i.player_id)===Number(p.id):i.player_name===p.name):[]);
+}
+
+function getWeekStart(){
+ if(state.weekStart)return state.weekStart;
+ const now=new Date(),parts=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Fortaleza",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(now);
+ const v=type=>parts.find(x=>x.type===type).value;
+ const x=new Date(`${v("year")}-${v("month")}-${v("day")}T12:00:00Z`),day=x.getUTCDay();x.setUTCDate(x.getUTCDate()+(day===0?-6:1-day));return x.toISOString().slice(0,10);
+}
+
+function formatCountdown(ms){
+  if(ms<=0)return"0min";const min=Math.ceil(ms/60000);if(min<60)return`${min}min`;
+  const h=Math.floor(min/60),m=min%60;return`${h}h ${String(m).padStart(2,"0")}min`;
+}
+function sinapseRemaining(p){return p?.sinapse_last_activity?new Date(p.sinapse_last_activity).getTime()+172800000-Date.now():0}
+function renderSinapse(){
+  const p=players.find(x=>x.id===selectedId);
+  if(!p){sinapseMain.innerHTML='<div class="empty">Selecione um jogador.</div>';return}
+  const remaining=sinapseRemaining(p),days=Number(p.sinapse_days||0);
+  if(remaining<=0)sinapseMain.innerHTML=`<div class="sinapse-days">💨 ${days}</div><div class="sinapse-label">Sinapse interrompida</div><div class="sinapse-countdown sinapse-expired">Responda uma questão para reativar.</div>`;
+  else sinapseMain.innerHTML=`<div class="sinapse-days">⚡ ${days}</div><div class="sinapse-label">${days===1?"dia":"dias"} de Sinapse</div><div class="sinapse-countdown sinapse-active">Pratique novamente em menos de: ${formatCountdown(remaining)}</div>`;
+}
+function renderSinapseRanking(){
+  const sorted=[...players].sort((a,b)=>(Number(b.sinapse_days||0)-Number(a.sinapse_days||0))||a.name.localeCompare(b.name,"pt-BR"));
+  sinapseRankingEl.innerHTML=sorted.length?sorted.map((p,i)=>{
+    const active=sinapseRemaining(p)>0&&Number(p.sinapse_days||0)>0;
+    return`<div class="sinapse-row"><div><div class="sinapse-row-name">${i+1}º · ${escapeHtml(p.name)}</div><div class="details">${active?"Sinapse ativa":"Sinapse interrompida"}</div></div><div class="sinapse-row-value">${active?"⚡":"💨"} ${Number(p.sinapse_days||0)} dias</div></div>`;
+  }).join(""):'<div class="empty">Nenhum jogador cadastrado.</div>';
+}
+function getCurrentAlliance(){return alliances.find(a=>allianceMembers.some(m=>m.alliance_id===a.id&&Number(m.player_id)===Number(selectedId)))||null}
+function alliancePoints(id){return state.permanentPoints.filter(x=>x.alliance_id===id).reduce((s,x)=>s+x.points,0)}
+function weeklyPoints(id){const wk=getWeekStart();return state.weeklyPoints.find(x=>x.alliance_id===id&&x.week_start===wk)?.points||0}
+function renderAlliances(){
+  const current=getCurrentAlliance();
+  if(!current)myAllianceEl.innerHTML=`<div class="alliance-box"><strong>Você ainda não faz parte de uma aliança.</strong><div class="muted" style="margin-top:6px">Crie uma ou entre em uma disponível abaixo.</div></div>`;
+  else{
+    const members=allianceMembers.filter(m=>m.alliance_id===current.id);
+    myAllianceEl.innerHTML=`<div class="alliance-box"><div class="alliance-head"><div><div class="alliance-name">⚔️ ${escapeHtml(current.name)}</div><div class="alliance-tag">[${escapeHtml(current.tag)}] · ${members.length} membros</div></div><strong>${alliancePoints(current.id)} pts</strong></div><div class="alliance-meta">${escapeHtml(current.description||"Aliança de estudos")}</div><div class="alliance-actions"><button class="secondary" id="leaveAllianceBtn">🚪 Sair da aliança</button></div><div class="member-list">${members.map(m=>{const p=players.find(x=>x.id===m.player_id);return`<div class="member-item"><span>${escapeHtml(p?.name||"Jogador")}</span><span class="member-role">${m.role==="owner"?"Líder":"Membro"}</span></div>`}).join("")}</div></div>`;
+    $("leaveAllianceBtn").onclick=()=>requestLeaveAlliance(current);
+  }
+  allianceListEl.innerHTML="";
+  if(!alliances.length)allianceListEl.innerHTML='<div class="empty">Nenhuma aliança criada ainda.</div>';
+  alliances.forEach(a=>{
+    const member=allianceMembers.find(m=>m.alliance_id===a.id&&Number(m.player_id)===Number(selectedId));
+    const row=document.createElement("div");row.className="alliance-row";
+    row.innerHTML=`<div><div class="alliance-row-name">⚔️ ${escapeHtml(a.name)} <span class="alliance-tag">[${escapeHtml(a.tag)}]</span></div><div class="alliance-row-meta">${allianceMembers.filter(m=>m.alliance_id===a.id).length} membros · ${alliancePoints(a.id)} pts${a.description?` · ${escapeHtml(a.description)}`:""}</div></div>`;
+    const btn=document.createElement("button");btn.className=member?"secondary":"action-btn correct";btn.textContent=member?"✓ Você está aqui":"Entrar";btn.disabled=!!member||!!current;
+    if(!member&&!current)btn.onclick=()=>joinAlliance(a.id);row.appendChild(btn);allianceListEl.appendChild(row);
+  });
+}
+function renderAllianceRankings(){
+  allianceRankingData=alliances.map(a=>({id:a.id,name:a.name,tag:a.tag,points:alliancePoints(a.id),member_count:allianceMembers.filter(m=>m.alliance_id===a.id).length})).sort((a,b)=>b.points-a.points);
+  weeklyRankingData=alliances.map(a=>({id:a.id,name:a.name,points:weeklyPoints(a.id),member_count:allianceMembers.filter(m=>m.alliance_id===a.id).length})).sort((a,b)=>b.points-a.points);
+  allianceRankingEl.innerHTML=allianceRankingData.length?allianceRankingData.map((a,i)=>`<li class="${i===0?"rank-first":""}"><div class="position">${i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}º`}</div><div><div class="name">⚔️ ${escapeHtml(a.name)}</div><div class="details">${a.member_count} membros</div></div><div class="points">${a.points} pts</div></li>`).join(""):'<li class="empty">Nenhuma aliança.</li>';
+  weeklyRankingEl.innerHTML=weeklyRankingData.length?weeklyRankingData.map((a,i)=>`<li class="${i===0&&a.points>0?"rank-first":""}"><div class="position">${i===0&&a.points>0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}º`}</div><div><div class="name">⚔️ ${escapeHtml(a.name)}</div><div class="details">${a.member_count} membros</div></div><div class="points">+${a.points} pts</div></li>`).join(""):'<li class="empty">Nenhuma aliança.</li>';
+  const winner=weeklyRankingData[0];weeklyChampionEl.innerHTML=winner&&winner.points>0?`<div class="weekly-medal">🏅</div><div class="weekly-winner">${escapeHtml(winner.name)}</div><div class="weekly-points">líder da semana · +${winner.points} pts</div>`:"";
+  weekLabel.textContent=`Semana iniciada em ${new Date(getWeekStart()+"T00:00:00").toLocaleDateString("pt-BR")}`;
+}
+
+
+function animateScore(points){
+  selectedScore.classList.remove("pop");void selectedScore.offsetWidth;selectedScore.classList.add("pop");
+  const r=selectedScore.getBoundingClientRect(),f=document.createElement("div");f.className=`floating-points ${points>0?"floating-positive":"floating-negative"}`;f.textContent=points>0?`+${points}`:`${points}`;f.style.left=`${r.left+r.width/2}px`;f.style.top=`${r.top}px`;document.body.appendChild(f);setTimeout(()=>f.remove(),850);
+}
+async function addPoints(value){
+ if(selectedId===null)return;const actor=requireIdentity();if(!actor)return;
+ if(await runOperation("sr6_add_score",{p_player:selectedId,p_points:value,p_actor:actor},value===10?"✅ Acerto registrado!":"❌ Erro registrado!")){
+  animateScore(value);value===10?(soundCorrect(),vibrate([30,40,50])):(soundWrong(),vibrate([70]));
+ }
+}
+
+async function undoLastAction(){
+ const p=players.find(x=>x.id===selectedId);if(!p?.last_action?.history_id)return;
+ const actor=requireIdentity();if(!actor)return;
+ if(await runOperation("sr6_undo_score",{p_player:selectedId,p_actor:actor},"↩️ Última ação desfeita!")){soundUndo();vibrate([50,40,50])}
+}
+
+async function addPlayer(){
+ const name=newPlayer.value.trim();if(!name)return;
+ if(await runOperation("sr6_add_player",{p_name:name},`${name} entrou no ranking!`))newPlayer.value="";
+}
+
+function requestRemovePlayer(id,name){openConfirm("🗑️ Remover jogador?",`Isso removerá ${name} e seu histórico do ranking online.`,()=>removePlayer(id,name))}
+async function removePlayer(id,name){
+ const actor=requireIdentity();if(!actor)return;
+ await runOperation("sr6_remove_player",{p_player:id,p_actor:actor},`🗑️ ${name} foi removido.`);
+}
+
+function resetScores(){
+ openConfirm("🗑️ Apagar todos os progressos?","Isso apagará pontos, questões, acertos, erros, Sinapses e históricos de todos os jogadores e das alianças. Os jogadores e as alianças cadastrados serão mantidos. A chave será validada no banco.",()=>{
+  const key=prompt("Digite a chave administrativa para apagar todos os progressos:");if(key===null)return;
+  return runOperation("sr6_reset_progress",{p_key:key},"🗑️ Todos os progressos foram apagados.");
+ });
+}
+
+async function createAlliance(){
+ if(selectedId===null||getCurrentAlliance())return;
+ const name=prompt("Nome da aliança:")?.trim();if(!name)return;
+ const tag=(prompt("Tag da aliança (ex.: STUDY):")||"ALLY").trim();
+ const description=(prompt("Descrição (opcional):")||"").trim();
+ await runOperation("sr6_create_alliance",{p_name:name,p_tag:tag,p_description:description,p_owner:selectedId},"⚔️ Aliança criada!");
+}
+
+async function joinAlliance(id){
+ if(selectedId===null)return;
+ await runOperation("sr6_join_alliance",{p_alliance:id,p_player:selectedId},"⚔️ Você entrou na aliança!");
+}
+
+function requestLeaveAlliance(a){openConfirm("🚪 Sair da aliança?",`Você sairá de ${a.name}. A pontuação histórica será preservada.`,()=>leaveAlliance(a.id))}
+async function leaveAlliance(id){
+ await runOperation("sr6_leave_alliance",{p_alliance:id,p_player:selectedId},"🚪 Você saiu da aliança.");
+}
+
+function escapeHtml(t){const d=document.createElement("div");d.textContent=t;return d.innerHTML}
+function formatDate(s){return new Date(s).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+
+document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll("#rankingTab,#alliancesTab,#sinapseTab").forEach(p=>p.classList.add("hidden"));
+  tab.classList.add("active");$(tab.dataset.tab).classList.remove("hidden");
+}));
+select.addEventListener("change",e=>{selectedId=Number(e.target.value);render()});
+correctBtn.addEventListener("click",()=>addPoints(10));wrongBtn.addEventListener("click",()=>addPoints(5));undoBtn.addEventListener("click",undoLastAction);
+addBtn.addEventListener("click",addPlayer);newPlayer.addEventListener("keydown",e=>{if(e.key==="Enter")addPlayer()});resetBtn.addEventListener("click",resetScores);
+refreshBtn.addEventListener("click",()=>loadData());
+themeBtn.addEventListener("click",toggleTheme);identityBtn.addEventListener("click",openIdentityModal);identityCancelBtn.addEventListener("click",closeIdentityModal);
+identitySaveBtn.addEventListener("click",()=>{const n=identityInput.value.trim();if(!n){showToast("Digite seu nome.");return}setIdentity(n);closeIdentityModal();showToast(`👤 Identidade definida: ${n}`)});
+identityInput.addEventListener("keydown",e=>{if(e.key==="Enter")identitySaveBtn.click()});
+confirmCancelBtn.addEventListener("click",closeConfirm);confirmOkBtn.addEventListener("click",()=>{if(confirmCallback){const cb=confirmCallback;confirmCallback=null;closeConfirm();cb()}});
+$("createAllianceBtn").addEventListener("click",createAlliance);
+$("allianceRefreshBtn").addEventListener("click",()=>loadData());
+
+loadTheme();updateIdentityUI();render();
+async function startOnline(){
+ await loadData();
+ if(supabaseClient){
+  const {error}=await supabaseClient.rpc("sr6_finalize_weeks");if(error)console.error(error);
+  const channel=supabaseClient.channel("study-rank-v6");
+  for(const table of ["players","study_rank_history","alliances","alliance_members","alliance_permanent_points","alliance_weekly_points","alliance_weekly_winners"]){
+   channel.on("postgres_changes",{event:"*",schema:"public",table},()=>{clearTimeout(realtimeTimer);realtimeTimer=setTimeout(loadData,150)});
+  }
+  channel.subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")setConnectionStatus("🟡 Reconectando · atualização automática a cada 15 segundos",false)});
+ }
+}
+startOnline();
+sinapseTimer=setInterval(()=>{renderSinapse();renderSinapseRanking();loadData()},15000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadData()});
+</script>
+</body>
+</html>
