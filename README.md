@@ -10,17 +10,17 @@ Tabelas atualizadas em tempo real para acompanhar o desempenho dos participantes
 
 Classificação dos participantes com base na quantidade de pontos acumulados, permitindo acompanhar a evolução individual e estimular uma competição 'saudável' entre amigos (caso seja possível).
 
-### SISTEMA DE ALIANÇAS (EM DESENVOLVIMENTO)
+### SISTEMA DE ALIANÇAS 
 
 Além do ranking individual, os participantes podem criar e participar de alianças fechadas ou abertas.
 
 As alianças possuem seus próprios rankings, permitindo comparar o desempenho coletivo dos grupos e acompanhar a contribuição de cada integrante.
 
-### PERFIL DO PARTICIPANTE (EM BREVE)
+### PERFIL DO PARTICIPANTE (EM DESENVOLVIMENTO)
 
 Cada jogador possui seu próprio perfil, com informações relacionadas ao seu progresso e desempenho no Study Rank.
 
-### PROGRESSO E ESTATÍSTICAS (EM BREVE)
+### PROGRESSO E ESTATÍSTICAS (EM DESENVOLVIMENTO)
 
 Acompanhamento do histórico de estudos e das estatísticas acumuladas, permitindo visualizar a evolução ao longo do tempo.
 
