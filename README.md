@@ -1,3 +1,26 @@
+## 🆕 O que há de novo — ENEMIZADES V10.4
+
+### Grandes novidades
+
+- **Sessões de estudo:** estude com suas enemizades, com metas pessoais ou coletivas opcionais, tempo limite e chat temporário.
+- **Desempenho por sessão:** acompanhe os resultados individuais e coletivos, além do tempo médio por questão. Os resumos ficam salvos no Perfil.
+- **Sinapse reformulada:** intensidade de 0 a 100, com +1 por questão e decaimento contínuo. Novas conquistas: **aquece banco**, **estudante de fato** e **vestibuleiro**.
+- **Perfil integrado:** conquistas reunidas no Perfil, junto ao histórico e ao ritmo médio das sessões.
+- **Modos experimentais:** duas colunas para telas largas e modo simples, mostrando somente o cabeçalho e o cartão de registrar questões.
+
+### Pequenas novidades e ajustes
+
+- Nome oficial e novo título: **🏆 ENEMIZADES 🫂**.
+- Cabeçalho com sincronização, dispositivos conectados e Enemizades em sessões.
+- Botão **❔ Ajuda** com explicações dos sistemas.
+- Novos avisos de sessões iniciadas e divisões de Sinapse, com preferências independentes de som e visualização.
+- Data, horário e barras de XP e Sinapse no modo de duas colunas.
+- Contagem regressiva para o ENEM no rodapé.
+- Correções nos sons locais, nas divisões da Sinapse e no comportamento da rolagem.
+- Encerramento automático das sessões por inatividade, descontando esse período do cálculo de velocidade.
+
+---
+---
 # STUDY RANK
 
 Projeto independente, recreativo e limitado, destinado ao incentivo do estudo coletivo entre amigos e colegas para vestibulares e ENEM.
